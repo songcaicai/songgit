@@ -1,0 +1,55 @@
+/*
+ * Copyright (c) 20016-2020, Chengdu RST technology co., ltd
+ *
+ * Change Logs:
+ * Date           Author       Notes
+ * 2020-11-30     heyuanhang       the first version
+ */
+#include <COMMON_HEADER/common_header.h>
+/**
+ *  格式化SPI FLASH
+ */
+static void formatting_device()
+{
+    /* 格式化块设备 */
+    int err_result;
+    err_result = dfs_mkfs("elm", W25Q64_BLOCK_DEVICE_NAME);
+    if(err_result == 1)
+    {
+        LOG_E("dfs_mkfs is failure\n");
+    }
+}
+
+/**
+ * 挂载文件系统到SPI FLASH
+ * @param parameter
+ */
+void spi_flash_mount(void)
+{
+    uint8_t data_buffer[1] = {0};
+    //需要查找块设备是否格式化的标志，再判断是否需要格式化
+    chip_flash_read(0xf000,data_buffer,sizeof(data_buffer));
+    if(data_buffer[0] != 0)
+    {
+        formatting_device();
+        data_buffer[0] = 0;
+    }
+    chip_flash_write(0xf000, data_buffer, sizeof(data_buffer));
+    /*格式化文件系统*/
+//    formatting_device();
+    /* 挂载文件系统 */
+    rt_thread_mdelay(2000);
+    if(rt_device_find(W25Q64_SPI_DEVICE_NAME) != RT_NULL)
+    {
+         if (dfs_mount(W25Q64_BLOCK_DEVICE_NAME, "/", "elm", 0, 0) == RT_EOK)
+         {
+             ;
+         }
+         else
+         {
+             LOG_E("spi flash mount to failed\n");
+         }
+    }
+}
+
+//INIT_COMPONENT_EXPORT(spi_flash_mount);

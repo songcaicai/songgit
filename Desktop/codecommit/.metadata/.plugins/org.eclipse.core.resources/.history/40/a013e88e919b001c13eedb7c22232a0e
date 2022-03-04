@@ -1,0 +1,379 @@
+#define LOG_TAG "protocol"
+#include <COMMON_HEADER/common_header.h>
+/*
+ * Copyright (c) 2016-2020, Chengdu RST technology co., ltd
+ *
+ * Change Logs:
+ * Date           Author       Notes
+ * 2020-12-17     shijiabao       the first version
+ */
+
+
+static void device_reboot(void)
+{
+    char send_data[6] = {0};
+    /*设备重启命令,回复FF 40 00 06 02 FF*/
+    send_data[0] = 0xff;
+    send_data[1] = 0x40;
+    send_data[2] = 0x00;
+    send_data[3] = 0x06;
+    send_data[4] = 0x02;
+    send_data[5] = 0xFF;
+    /*回复指令*/
+    debug_uart_write(send_data, 6);
+    /*延时1000ms*/
+    rt_thread_mdelay(1000);
+    /*执行设备重启*/
+    rt_hw_interrupt_disable();
+    HAL_NVIC_SystemReset();
+}
+
+//数字信号输出控制
+static void digita_signal_output_control(void)
+{
+    char send_data[6] = {0};
+    /*数据信号输出控制,回复FF 40 00 06 02 FF*/
+    send_data[0] = 0xff;
+    send_data[1] = 0x42;
+    send_data[2] = 0x00;
+    send_data[3] = 0x06;
+    send_data[4] = 0x02;
+    send_data[5] = 0xFF;
+    /*回复指令*/
+    debug_uart_write(send_data, 6);
+}
+
+//参数查询
+static void parameter_query(char *data_buffer)
+{
+    char data_buffer_configure[300] = {0};
+    /*数据信号输出控制,回复FF 40 00 06 02 FF*/
+    data_buffer[0] = 0xff;
+    data_buffer[1] = 0x80;
+    data_buffer[4] = 0x02;
+    /*读取第一块参数设置值*/
+    chip_flash_read(CONFIGURE_FLASH_ADDR,data_buffer_configure,0x6A);
+    for(int i=0;i<0x6A;i++)
+    {
+        data_buffer[5+i] = data_buffer_configure[i];
+    }
+    /*读取第二块参数设置值*/
+    chip_flash_read(CONFIGURE_FLASH_ADDR+0x1000,data_buffer_configure,0x113);
+    for(int i=0;i<0x113;i++)
+    {
+        data_buffer[5+0x6A+i] = data_buffer_configure[i];
+    }
+    /*读取第三块参数设置值*/
+    chip_flash_read(CONFIGURE_FLASH_ADDR+0x2000,data_buffer_configure,0x92);
+    for(int i=0;i<0x92;i++)
+    {
+        data_buffer[5+0x6A+0x113+i] = data_buffer_configure[i];
+    }
+    data_buffer[3] = 0x15;
+    data_buffer[2] = 0x02;
+    data_buffer[0x6A+0x113+0x92+5] = 0xff;
+    /*回复指令*/
+    debug_uart_write(data_buffer, 0x6A+0x113+0x92+6);
+}
+
+void parameter_setting(char *data_buffer)
+{
+    char send_data[6] = {0};
+    char data_buffer_configure[300] = {0};
+
+    memset(data_buffer_configure,0,sizeof(data_buffer_configure));
+    for (int i=0;i<0x6a;i++)
+    {
+        data_buffer_configure[i] = data_buffer[5+i];
+    }
+    chip_flash_write(CONFIGURE_FLASH_ADDR,data_buffer_configure,0x6a);
+
+    memset(data_buffer_configure,0,sizeof(data_buffer_configure));
+    for (int i=0;i<0x113;i++)
+    {
+        data_buffer_configure[i] = data_buffer[5+0x6A+i];
+    }
+    chip_flash_write(CONFIGURE_FLASH_ADDR+0x1000,data_buffer_configure,0x113);
+
+    memset(data_buffer_configure,0,sizeof(data_buffer_configure));
+    for (int i=0;i<0x92;i++)
+    {
+        data_buffer_configure[i] = data_buffer[5+0x6A+0x113+i];
+    }
+    chip_flash_write(CONFIGURE_FLASH_ADDR+0x2000,data_buffer_configure,0x92);
+
+    send_data[0] = 0xff;
+    send_data[1] = 0x81;
+    send_data[2] = 0x00;
+    send_data[3] = 0x06;
+    send_data[4] = 0x02;
+    send_data[5] = 0xFF;
+    debug_uart_write(send_data, 6);
+
+    rt_thread_mdelay(1000);
+    /*执行设备重启*/
+    rt_hw_interrupt_disable();
+    HAL_NVIC_SystemReset();
+}
+
+void ulog_oneday_query(char *data_buffer)
+{
+    char data_buffer_configure[40] = {0};
+    int ulog_file_fd = -1;
+    uint32_t ulog_file_size = 0;
+
+    rt_sprintf(data_buffer_configure,"/logs/%d_%d_%d_ulog.log" , dtu_times.year, dtu_times.month, dtu_times.day);
+    ulog_file_fd = open(data_buffer_configure, O_RDONLY);
+    if(ulog_file_fd < 0)
+    {
+       close(ulog_file_fd);;
+    }
+    else
+    {
+        while((ulog_file_size = read(ulog_file_fd,data_buffer,2058)))
+        {
+            debug_uart_write(data_buffer, ulog_file_size);
+        }
+        close(ulog_file_fd);
+    }
+}
+
+static void update_ready(void)
+{
+    extern uint8_t led_connect_status;
+    extern uint8_t led_network_status;
+
+    char data_buffer_back[6] = {0};
+    data_buffer_back[0] = 0xff;
+    data_buffer_back[1] = 0xC0;
+    data_buffer_back[2] = 0x00;
+    data_buffer_back[3] = 0x06;
+    data_buffer_back[4] = 0x02;
+    data_buffer_back[5] = 0xFF;
+    debug_uart_write(data_buffer_back, 6);
+    //准备升级进入快闪
+    led_connect_status = 3;
+    led_network_status = 3;
+}
+
+static void update_download_write(char *data_buffer)
+{
+    uint32_t addr = 0;
+    char data_buffer_back[6] = {0};
+//    char data_buffer_configure[2048] = {0};
+
+    /*固件数据传输*/
+    /*固件数据的格式    标志位(1B) 包类型(1B) 包长度 (2B) 消息类型(1B)        数据(2052B)         标志位(1B)*/
+                                                                  //相对存储地址(4B)+固件包(2KB)
+    /******************************************************固件写地址(4B) 固件数据（最大2048B） *********/
+    //获取固件相对存储地址
+    addr = data_buffer[5]+data_buffer[6]*256+data_buffer[7]*256*256+data_buffer[8]*256*256*256;
+    //取出固件数据，烧录到flash
+//    memset(data_buffer_configure,0,sizeof(data_buffer_configure));
+//    for(int i = 0;i < 2048;i++)
+//    {
+//        data_buffer_configure[i] = data_buffer[i+9];
+//    }
+    chip_flash_write(DOWNLOAD_FIRMWARE_FLASH_ADDR+addr, &(data_buffer[9]), 2048);
+    /*回复数据传输成功指令,回复FF C1 00 06 02 FF*/
+    data_buffer_back[0] = 0xff;
+    data_buffer_back[1] = 0xC1;
+    data_buffer_back[2] = 0x00;
+    data_buffer_back[3] = 0x06;
+    data_buffer_back[4] = 0x02;
+    data_buffer_back[5] = 0xFF;
+    debug_uart_write(data_buffer_back, 6);
+}
+
+static void device_update(char *data_buffer)
+{
+    data_buffer[0] = 1;
+    for(int i=1;i<2048;i++)
+    {
+        data_buffer[i] = 0xff;
+    }
+    //接收到升级通告,重启设备进行升级
+    /*延时1000ms*/
+    chip_flash_write(FLASH_UPDATE_FLAG_ADDR, data_buffer, 2048);
+    rt_thread_mdelay(1000);
+    /*执行设备重启*/
+    rt_hw_interrupt_disable();
+    HAL_NVIC_SystemReset();
+}
+
+static void invalid_instruction(void)
+{
+    char data_buffer_back[6] = {0};
+    /*默认情况下回复无效指令,回复FF 00 00 06 02 FF*/
+    data_buffer_back[0] = 0xff;
+    data_buffer_back[1] = 0x00;
+    data_buffer_back[2] = 0x00;
+    data_buffer_back[3] = 0x06;
+    data_buffer_back[4] = 0x02;
+    data_buffer_back[5] = 0xFF;
+    rt_device_write(debug_serial,0,data_buffer_back,sizeof(data_buffer_back));
+}
+
+void debug_uart_private_protocol_data_handle(char *data_buffer)
+{
+    if(data_buffer[0] == 0xFF)
+    {
+        switch(data_buffer[1])
+        {
+            case 0x40:
+                /*设备重启*/
+                device_reboot();
+                break;
+            case 0x41:
+                /*设备恢复出厂设置,回复FF 41 00 06 02 FF*/
+                break;
+            case 0x42:
+                /*数字信号输出控制,回复FF 42 00 06 02 FF*/
+                digita_signal_output_control();
+                break;
+            case 0x80:
+                /*参数查询指令,回复参数数据*/
+                parameter_query(data_buffer);
+                break;
+            case 0x81:
+                /*设置参数指令*/
+                parameter_setting(data_buffer);
+                break;
+            case 0x82:
+                ulog_oneday_query(data_buffer);
+                break;
+            case 0xC0:
+                /*升级通知*/
+                /*回复知晓指令,回复FF C0 00 06 02 FF*/
+                update_ready();
+                break;
+            case 0xC1:
+                update_download_write(data_buffer);
+                break;
+            case 0xC2:
+                device_update(data_buffer);
+                break;
+            default:
+                invalid_instruction();
+                break;
+        }
+    }
+}
+
+/****配置查询*****/
+static void private_device_config_query_callback(void)
+{
+    uint16_t length;
+    char *config_data = (char *)malloc(800);
+    char *callback_data = (char *)malloc(1024);
+
+    memset(config_data,0,800);
+    memset(callback_data,0,1024);
+
+    config_handle(config_data);
+
+    length=data_packet_param_query_instruction(callback_data,config_data,strlen(config_data));
+    rt_tcpclient_send3(callback_data,length);
+
+    free(config_data);
+    free(callback_data);
+}
+/******升级*******/
+static void private_device_upgrade(char*data_buff,int data_length)
+{
+    uint16_t length;
+    char *date_fact = (char *)malloc(data_length);
+    char *reply_packet = (char *)malloc(30);
+
+    memset(date_fact,0,1024);
+    memset(reply_packet,0,30);
+
+    for(int i=0;i<(data_length-5);i++)
+    {
+        date_fact[i] = data_buff[i+4];
+    }
+
+    length = data_packet_upgrade_data_instruction(reply_packet);
+    rt_tcpclient_send3(reply_packet,length);
+
+    cjson_handle_upgrade(date_fact);
+
+    free(date_fact);
+    free(reply_packet);
+
+}
+/*****配置更新*****/
+static void private_device_config_update(char*data_buff,int data_length)
+{
+    uint16_t length;
+    char *date_fact = (char *)malloc(data_length);
+    char *reply_packet = (char *)malloc(30);
+
+    memset(date_fact,0,data_length);
+    memset(reply_packet,0,30);
+
+    for(int i=0;i<(data_length-5);i++)
+    {
+        date_fact[i] = data_buff[i+4];
+    }
+
+    length = data_packet_param_setting_instruction(reply_packet);
+    rt_tcpclient_send3(reply_packet,length);
+
+    cjson_handle_update(date_fact);
+
+    free(date_fact);
+    free(reply_packet);
+    device_parm.status.reboot_operation_flag = 1;
+
+    }
+static void private_device_reboot(void)
+{
+    uint16_t length;
+    char *reply_packet = (char *)malloc(30);
+    memset(reply_packet,0,30);
+
+    length = data_packet_device_reboot_instruction(reply_packet);
+
+    LOG_D("318config_data:%x",reply_packet);
+    LOG_D("320length=%d",length);
+
+    rt_tcpclient_send3(reply_packet,length);
+
+    free(reply_packet);
+    device_parm.status.reboot_operation_flag = 1;
+}
+
+int private_data_parse(char *data_buff,int data_length)
+{
+    /*判断首位标志位是否正确*/
+    if(data_buff[0] != 0xff)
+    {
+        return 0;
+    }
+    /*判断数据是否完整*/
+    if(((data_buff[2]*256+data_buff[3])+5) != data_length)
+    {
+        return 0;
+    }
+
+    switch(data_buff[1])
+    {
+        case 0x40:
+            private_device_reboot();
+            break;
+        case 0x80:
+            private_device_config_query_callback();
+            break;
+        case 0x81:
+            private_device_config_update(data_buff,data_length);
+            break;
+        case 0xC1:
+            private_device_upgrade(data_buff,data_length);
+            break;
+        default:
+            LOG_D("This is Invalid instruction");
+    }
+    return 0;
+}
+

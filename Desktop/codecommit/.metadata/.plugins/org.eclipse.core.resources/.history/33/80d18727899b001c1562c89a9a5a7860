@@ -1,0 +1,325 @@
+//日志标签定义
+#define LOG_TAG     "thread"
+#include <COMMON_HEADER/common_header.h>
+/*
+ * Copyright (c) 2016-2020, Chengdu RST technology co., ltd
+ *
+ * Change Logs:
+ * Date           Author       Notes
+ * 2021-01-05     shijiabao       the first version
+ */
+
+//注册包
+char registration_package[0x20] = { 0 };
+extern uint8_t led_network_status;
+extern uint8_t led_connect_status;
+uint8_t connnect_number = 0;
+
+/* 线程 1 的入口函数 */
+void watchdog_thread(void *parameter)
+{
+//    const char test_char[] = "datacacheceshi";
+//    char *read_data_cache = NULL;
+    while (1)
+    {
+        rt_thread_mdelay(15000);
+        feed_dog();
+
+//        if(!data_cache_write(test_char))
+//        {
+//            LOG_I("data cache write success!");
+//        }
+//        else
+//        {
+//            LOG_E("data cache write failed!");
+//        }
+//        rt_thread_mdelay(1000);
+//
+//        if((read_data_cache = data_cache_read())!=NULL)
+//        {
+//            LOG_I("data cache read succes!:%s",read_data_cache);
+//            free(read_data_cache);
+//        }
+//        else
+//        {
+//            LOG_I("data cache read failed!");
+//            free(read_data_cache);
+//        }
+        //日志清理
+        //rt_kprintf("test\n");
+        //clear_redundant_ulog_file();
+    }
+}
+
+void heartbeat1_thread_entry(void *parameter)
+{
+    uint32_t heartbeat_time1 = 0;
+    heartbeat_time1 = atoi(device_parm.configure.breathe_time1);
+
+    if(heartbeat_time1 == 0)
+    {
+        LOG_D("heartbeat time error");
+    }
+    else
+    {
+       while (1)
+       {
+           rt_thread_mdelay(heartbeat_time1*1000 - 200);
+           if(device_parm.status.tt_server1_connect_flag == 1)
+           {
+               /* 硬件延时防止与其他报文发生粘包 */
+               hardware_delay_ms(200);
+               rt_tcpclient_send1(device_parm.configure.breathe_packet1, sizeof(device_parm.configure.breathe_packet1));
+           }
+           else
+           {
+               rt_thread_mdelay(200);
+           }
+       }
+    }
+}
+
+
+void heartbeat3_thread_entry(void *parameter)
+{
+    uint32_t heartbeat_time2 = 0;
+////    heartbeat_time2 = atoi(device_parm.configure.breathe_time2);
+    heartbeat_time2 = 60;
+    char data_buff[50];
+    uint8_t length;
+
+    if(heartbeat_time2 == 0)
+    {
+        LOG_D("heartbeat time error");
+    }
+    else
+    {
+       while (1)
+       {
+           rt_thread_mdelay(heartbeat_time2*1000 - 200);
+           if(device_parm.status.private_server_connect_flag == 1)
+           {
+               /* 硬件延时防止与其他报文发生粘包 */
+               hardware_delay_ms(200);
+               length = data_packet_heartbeat_instruction(data_buff,device_parm.configure.serial_number,strlen(device_parm.configure.serial_number));
+               rt_tcpclient_send3(data_buff,length);
+           }
+           else
+           {
+               rt_thread_mdelay(200);
+           }
+       }
+    }
+}
+
+/**
+ * @brief 网络连接线程，负责建立与服务器的连接，当发生断线时，保持重连，如果多次重连未成功，则软复位网络模块，再重新连接，以此循环
+ * @author shijiabao
+ * @date 2021.08.19 rewrite
+ * @param
+ * @return
+ */
+void network_connect_thread(void *parameter)
+{
+    uint8_t connnect_failed_count = 0;
+mode_init_start:
+    /* Initialize the connection status of transparent transmission center 1, 2
+     * and private data center、cloud platform server connect flag to 0 */
+    device_parm.status.tt_server1_connect_flag = 0;
+    device_parm.status.mqtt_server_connect_flag = 0;
+    device_parm.status.private_server_connect_flag = 0;
+    device_parm.status.network_init_flag = 0;
+
+    sim76xx_device_register();
+
+    if(device_parm.status.network_init_flag != 1)
+    {
+        LOG_D("network init failed,reboot");
+        connnect_failed_count++;
+        if(connnect_failed_count > 5)
+            reboot();
+        goto mode_init_start;
+    }
+    else
+    {
+        LOG_D("network init successes.");
+        connnect_failed_count = 0;
+    }
+    /* mqtt connect start */
+    if(strcmp(device_parm.configure.mqtt_switch, "1") == 0)
+    {
+//        mqtt_start();
+    }
+    /* data transmission mode:
+     * 0 data center 1->tcpclient number 1;data center 2->tcpclient number 2;
+     * 1 private data center->tcpclient number 3;
+     * 2 private and transmission;
+     * 0表示只透明传输；1表示只私有协议传输；2表示透传传输数据，私有协议进行远程管理。目前只支持单数据中心
+     *  */
+    if (strcmp(device_parm.configure.data_transmission_mode, "0") == 0)
+    {
+        if(strcmp(device_parm.configure.data_center1_switch, "1") == 0)
+        {
+            LOG_D("data center 1 IP:[%s] PORT:[%d]", device_parm.configure.data_center1_ip, atoi(device_parm.configure.data_center1_port));
+            LOG_D("data center 1 connect start.");
+            network_client_start(1, device_parm.configure.data_center1_ip, atoi(device_parm.configure.data_center1_port));
+        }
+    }
+    else if (strcmp(device_parm.configure.data_transmission_mode, "1") == 0)
+    {
+        LOG_D("private data center IP:[%s] PORT:[%d]", device_parm.configure.private_data_center_ip, atoi(device_parm.configure.private_data_center_port));
+        LOG_D("private data center connect start.");
+        network_client_start(3, device_parm.configure.private_data_center_ip, atoi(device_parm.configure.private_data_center_port));
+    }
+    else if (strcmp(device_parm.configure.data_transmission_mode, "2") == 0)
+    {
+        if(strcmp(device_parm.configure.data_center1_switch, "1") == 0)
+        {
+            LOG_D("data center 1 IP:[%s] PORT:[%d]", device_parm.configure.data_center1_ip, atoi(device_parm.configure.data_center1_port));
+            LOG_D("data center 1 connect start.");
+            network_client_start(1, device_parm.configure.data_center1_ip, atoi(device_parm.configure.data_center1_port));
+        }
+
+        LOG_D("private data center IP:[%s] PORT:[%d]", device_parm.configure.private_data_center_ip, atoi(device_parm.configure.private_data_center_port));
+        LOG_D("private data center connect start.");
+        network_client_start(3, device_parm.configure.private_data_center_ip, atoi(device_parm.configure.private_data_center_port));
+    }
+    else
+    {
+        LOG_D("data transmission mode error(%d).", device_parm.configure.data_transmission_mode);
+    }
+
+    rt_thread_mdelay(30000);
+
+    while(1)
+    {
+        if(device_parm.status.tt_server1_connect_flag == 1)
+        {
+            connnect_failed_count = 0;
+        }
+        /* after 200s,if connect failed,start reconnect */
+        if(connnect_failed_count > 6)
+        {
+            mqtt_connect_status_get();
+            if(device_parm.status.tt_server1_connect_flag == 0 )
+            {
+                LOG_D(" after 3600s,all server connect failed,device reboot------");
+                reboot();
+            }
+        }
+        if(device_parm.status.tt_server1_connect_flag == 0 && strcmp(device_parm.configure.data_center1_switch, "1") == 0)
+        {
+            LOG_D("data center 1 IP:[%s] PORT:[%d]", device_parm.configure.data_center1_ip, atoi(device_parm.configure.data_center1_port));
+            LOG_D("data center1 reconnect start.");
+            network_client_start(1, device_parm.configure.data_center1_ip, atoi(device_parm.configure.data_center1_port));
+            connnect_failed_count++;
+        }
+        if(device_parm.status.private_server_connect_flag == 0 && ((strcmp(device_parm.configure.data_transmission_mode, "2") == 0) || (strcmp(device_parm.configure.data_transmission_mode, "1") == 0)))
+        {
+            LOG_D("private data center IP:[%s] PORT:[%d]", device_parm.configure.private_data_center_ip, atoi(device_parm.configure.private_data_center_port));
+            LOG_D("private data center reconnect start.");
+            network_client_start(3, device_parm.configure.private_data_center_ip, atoi(device_parm.configure.private_data_center_port));
+        }
+        /* delay must 10s */
+        rt_thread_mdelay(10000);
+    }
+}
+
+/* 线程 7的入口函数 */
+void connect_led_thread_entry(void *parameter)
+{
+    while (1)
+    {
+        /* 如果一个网络连接都没有建立，那么熄灭  */
+        if(device_parm.status.tt_server1_connect_flag == 0 &&
+           device_parm.status.tt_server2_connect_flag == 0 &&
+           device_parm.status.private_server_connect_flag == 0 &&
+           device_parm.status.mqtt_server_connect_flag == 0)
+        {
+            led1_down();
+            rt_thread_mdelay(500);
+        }
+        /* 如果建立了全部该有的连接 */
+        else if(atoi(device_parm.configure.data_center1_switch) == device_parm.status.tt_server1_connect_flag )
+        {
+            led1_on();
+            rt_thread_mdelay(500);
+        }
+        /* 如果建立了一些连接 */
+        else
+        {
+            led1_down();
+            rt_thread_mdelay(300);
+            led1_on();
+            rt_thread_mdelay(300);
+        }
+        /* 如果设备正在升级，由其余线程来处理 */
+        if(firmware_upgrade_flag == 1)
+        {
+            rt_thread_mdelay(300);
+        }
+        if(device_parm.status.reboot_operation_flag == 1)
+        {
+            device_parm.status.reboot_operation_flag = 0;
+            reboot();
+        }
+    }
+}
+
+/* 线程 7的入口函数 */
+void network_led_thread_entry(void *parameter)
+{
+    while (1)
+    {
+        /* 如果模块网络初始化成功，则常亮  */
+        if(device_parm.status.network_init_flag == 1)
+        {
+            led3_on();
+            rt_thread_mdelay(300);
+        }
+        /* 网络没有初始化完成，慢闪 */
+        else
+        {
+            led3_down();
+            rt_thread_mdelay(300);
+            led3_on();
+            rt_thread_mdelay(300);
+        }
+        /* 如果设备正在升级，则快闪 */
+        if(firmware_upgrade_flag == 1)
+        {
+            led3_down();
+            led1_on();
+            rt_thread_mdelay(50);
+            led2_on();
+            led1_down();
+            rt_thread_mdelay(50);
+            led3_on();
+            led2_down();
+            rt_thread_mdelay(50);
+        }
+    }
+}
+
+void mqtt_status_send_thread_entry(void *parameter)
+{
+    int mqtt_breathe_time = 0;
+    mqtt_status_send_flag = 1;
+    mqtt_breathe_time = atoi(device_parm.configure.mqtt_breathe_time);
+    if (mqtt_breathe_time<0 || mqtt_breathe_time==0)
+        mqtt_breathe_time = 3600;
+    rt_thread_mdelay(20000);
+    while(1)
+    {
+        //device_status_query();
+        mqtt_connect_status_get();
+        if(device_parm.status.mqtt_server_connect_flag == 1)
+        {
+            if(mqtt_status_send_flag == 1)
+            mqtt_status_send();
+
+        }
+        rt_thread_mdelay(mqtt_breathe_time*1000);
+    }
+}
+

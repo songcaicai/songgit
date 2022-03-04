@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item value="false" key="isRegEx"/>
+		<item value="rt_tcpclient_start" key="selection"/>
+		<item value="false" key="casesensitive"/>
+		<item value="false" key="wholeword"/>
+		<list key="findhistory">
+			<item value="Operation"/>
+			<item value="SOCK_STREAM"/>
+			<item value="PIPE_BUFSZ"/>
+			<item value="rt_tc_rx_cb"/>
+			<item value="private_data_parse"/>
+			<item value="tcpclient1"/>
+			<item value="DATA_FRAME_PARAM_SETTING"/>
+			<item value="DATA_FRAME_PARAM_QUERY"/>
+		</list>
+		<list key="replacehistory">
+		</list>
+	</section>
+</section>

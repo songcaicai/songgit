@@ -1,0 +1,45 @@
+16:25:48 **** Incremental Build of configuration Debug for project rst-dtu-dn400 ****
+make -j8 all 
+arm-none-eabi-gcc "../applications/TASK/task_thread.c"
+In file included from C:\Users\song\Desktop\codecommit\rst-dtu-dn400\libraries\STM32F1xx_HAL_Driver\Inc/stm32f1xx_hal_flash.h:248:0,
+                 from C:\Users\song\Desktop\codecommit\rst-dtu-dn400\drivers/stm32f1xx_hal_conf.h:268,
+                 from C:\Users\song\Desktop\codecommit\rst-dtu-dn400\libraries\STM32F1xx_HAL_Driver\Inc/stm32f1xx_hal.h:30,
+                 from C:\Users\song\Desktop\codecommit\rst-dtu-dn400\libraries\CMSIS\Device\ST\STM32F1xx\Include/stm32f1xx.h:200,
+                 from C:\Users\song\Desktop\codecommit\rst-dtu-dn400\drivers/board.h:14,
+                 from C:\Users\song\Desktop\codecommit\rst-dtu-dn400\applications/COMMON_HEADER/common_header.h:29,
+                 from ../applications/TASK/task_thread.c:3:
+C:\Users\song\Desktop\codecommit\rst-dtu-dn400\libraries\STM32F1xx_HAL_Driver\Inc/stm32f1xx_hal_flash_ex.h:98:0: warning: "IS_FLASH_NB_PAGES" redefined
+ #define IS_FLASH_NB_PAGES(ADDRESS,NBPAGES) (((*((uint16_t *)FLASH_SIZE_DATA_REGISTER)) == 0x400U) ? ((ADDRESS)+((NBPAGES)*FLASH_PAGE_SIZE)-1 <= 0x080FFFFFU) : \
+ ^
+C:\Users\song\Desktop\codecommit\rst-dtu-dn400\libraries\STM32F1xx_HAL_Driver\Inc/stm32f1xx_hal_flash_ex.h:91:0: note: this is the location of the previous definition
+ #define IS_FLASH_NB_PAGES(ADDRESS,NBPAGES) (((*((uint16_t *)FLASH_SIZE_DATA_REGISTER)) == 0x200U) ? ((ADDRESS)+((NBPAGES)*FLASH_PAGE_SIZE)-1 <= 0x0807FFFFU) : \
+ ^
+C:\Users\song\Desktop\codecommit\rst-dtu-dn400\libraries\STM32F1xx_HAL_Driver\Inc/stm32f1xx_hal_flash_ex.h:145:0: warning: "IS_FLASH_PROGRAM_ADDRESS" redefined
+ #define IS_FLASH_PROGRAM_ADDRESS(ADDRESS) (((ADDRESS) >= FLASH_BASE) && (((*((uint16_t *)FLASH_SIZE_DATA_REGISTER)) == 0x400U) ? \
+ ^
+C:\Users\song\Desktop\codecommit\rst-dtu-dn400\libraries\STM32F1xx_HAL_Driver\Inc/stm32f1xx_hal_flash_ex.h:137:0: note: this is the location of the previous definition
+ #define IS_FLASH_PROGRAM_ADDRESS(ADDRESS) (((ADDRESS) >= FLASH_BASE) && (((*((uint16_t *)FLASH_SIZE_DATA_REGISTER)) == 0x200U) ? \
+ ^
+In file included from ../applications/TASK/task_thread.c:3:0:
+C:\Users\song\Desktop\codecommit\rst-dtu-dn400\applications/COMMON_HEADER/common_header.h:125:1: warning: useless storage class specifier in empty declaration
+ };
+ ^
+C:\Users\song\Desktop\codecommit\rst-dtu-dn400\applications/COMMON_HEADER/common_header.h:161:1: warning: useless storage class specifier in empty declaration
+ };
+ ^
+../applications/TASK/task_thread.c: In function 'heartbeat1_thread_entry':
+../applications/TASK/task_thread.c:71:16: warning: implicit declaration of function 'hardware_delay_ms' [-Wimplicit-function-declaration]
+                hardware_delay_ms(200);
+                ^
+linking...
+Memory region         Used Size  Region Size  %age Used
+             ROM:      319968 B         1 MB     30.51%
+             RAM:       30240 B        96 KB     30.76%
+arm-none-eabi-objcopy -O binary "rtthread.elf"  "rtthread.bin"
+arm-none-eabi-size --format=berkeley "rtthread.elf"
+   text	   data	    bss	    dec	    hex	filename
+ 319968	   2532	  27704	 350204	  557fc	rtthread.elf
+
+              Used Size(B)           Used Size(KB)
+Flash:         322500 B              314.94 KB
+RAM:            30236 B               29.53 KB

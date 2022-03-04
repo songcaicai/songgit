@@ -1,0 +1,116 @@
+/*
+ * Copyright (c) 2016-2020, Chengdu RST technology co., ltd
+ *
+ * Change Logs:
+ * Date           Author       Notes
+ * 2020-12-15     shijiabao       the first version
+ */
+#ifndef APPLICATIONS_CONFIGURE_DEVICE_CONFIGURE_H_
+#define APPLICATIONS_DEVICE_CONFIGURE_H_
+
+#define CONFIGURE_FLASH_ADDR  0x0806C000
+
+#define DOWNLOAD_FIRMWARE_FLASH_ADDR 0x08039800
+#define FLASH_UPDATE_FLAG_ADDR 0x0806B800
+
+void dtu_config_file_init(void);
+
+//configure file parmester
+#define DTU_CONFIG_FILE "file"
+#define DTU_CONFIG_FILE_PATH "/config"
+#define DTU_CONFIG_FILE_NAME "dn400.conf"
+//default config parmester
+#define DEFAULT_PRODUCT_NAME "DN400"
+#define DEFAULT_HARDWARE_VERISON "1.0.0"
+#define DEFAULT_APP_VERISON "1.0.0"
+#define DEFAULT_SERIAL_NUMBER "2222030108164537"
+#define DEFAULT_DTU_NUMBER "BJX105"
+#define DEFAULT_APN_SWITCH "0"
+#define DEFAULT_APN_AUTH_TYPE "1"
+#define DEFAULT_APN_NAME_DEFAULT "cmcc"
+#define DEFAULT_APN_USER_DEFAULT "0"
+#define DEFAULT_APN_PASSWORD_DEFAULT "0"
+#define DEFAULT_DATA_TRANSMIISSON_MODE "0"
+#define DEFAULT_DATA_CENTER1_SWITCH "1"
+#define DEFAULT_DATA_CENTER1_IP "cdrst.asuscomm.com"
+#define DEFAULT_DATA_CENTER1_PORT "9090"
+#define DEAFULT_REGISTER_PACKET1 "rst05"
+#define DEAFULT_BREATHE_PACKET1 "RstHeartbeat05"
+#define DEAFULT_BREATHE_TIME1 "60"
+#define DEFAULT_DATA_CENTER2_SWITCH "1"
+#define DEFAULT_DATA_CENTER2_IP "cdrst.asuscomm.com"
+#define DEFAULT_DATA_CENTER2_PORT "5000"
+#define DEAFULT_REGISTER_PACKET2 "rst02"
+#define DEAFULT_BREATHE_PACKET2 "RstHeartbeat"
+#define DEAFULT_BREATHE_TIME2 "5"
+#define DEAFULT_PRIVATE_DATA_CENTER_IP "cdrst.asuscomm.com"
+#define DEAFULT_PRIVATE_DATA_CENTER_PORT "61111"
+
+#define DEAFULT_RS485_BAUD_RATE "9600"
+//#define DEAFULT_RS485_BAUD_RATE "19200"
+#define DEAFULT_RS485_DATA_BIT "8"
+#define DEAFULT_RS485_CHECK_BIT "NONE"
+#define DEAFULT_RS485_STOP_BIT "1"
+#define DEAFULT_RS232_BAUD_RATE "9600"
+#define DEAFULT_RS232_DATA_BIT "8"
+#define DEAFULT_RS232_CHECK_BIT "NONE"
+#define DEAFULT_RS232_STOP_BIT "1"
+#define DEAFULT_MQTT_SWITCH "1"
+#define DEAFULT_MQTT_URL "tcp://cdrst.asuscomm.com:1883"
+#define DEAFULT_MQTT_USERNAME "admin"
+#define DEAFULT_MQTT_PASSWORD "admin"
+#define DEAFULT_MQTT_BREATHE_PUBTOPIC "heartbeatAll3"
+#define DEAFULT_MQTT_INSTRUCTIONS_PUBTOPIC "client3"
+#define DEAFULT_MQTT_INSTRUCTIONS_SUBTOPIC "server3"
+#define DEAFULT_MQTT_WILLMSG "GoodBye"
+#define DEAFULT_MQTT_BREATHE_TIME "60"
+
+#define ProductName "PN"
+#define HardwareVersion "HV"
+#define SoftVersion "SV"
+#define SerialNumber "SN"
+#define DtuCode "DC"
+#define ApnSwitch "AS"
+#define ApnAuthType "AAT"
+#define ApnName "AN"
+#define ApnUserName "AUN"
+#define ApnPassword "AP"
+#define DataTransmissionMode "DTM"
+#define DataCenter1Switch "DCS1"
+#define DataCenterIP1 "DCIP1"
+#define DataCenterPort1 "DCP1"
+#define ResigterPackage1 "RP1"
+#define HreatPackage1 "HP1"
+#define HreatTime1 "HT1"
+#define DataCenter2Switch "DCS2"
+#define DataCenterIP2 "DCIP2"
+#define DataCenterPort2 "DCP2"
+#define ResigterPackage2 "RP2"
+#define HreatPackage2 "HP2"
+#define HreatTime2 "HT2"
+#define PrivateDataCenterIP "PDCIP"
+#define PrivateDataCenterPort "PDCP"
+#define Rs485BaudRate "485BR"
+#define Rs485DataBit "485DB"
+#define Rs485StopBit "485SB"
+#define Rs485CheckBit "485CB"
+#define Rs232BuadRate "232BR"
+#define Rs232DataBit "232DB"
+#define Rs232StopBit "232SB"
+#define Rs232CheckBit "232CB"
+#define MqttSwitch "MS"
+#define MqttUrl "MU"
+#define MqttUserName "MUN"
+#define MqttPassWord "MPW"
+#define MqttBreathePubtopic "MBP"
+#define MqttInstructionsSubtopic "MIS"
+#define MqttInstructionsPubtopic "MIP"
+#define MqttWillmsg "MW"
+#define MqttBreatheTime "MBT"
+
+void reboot(void);
+int write_parm_to_config(void);
+void filepath_init(void);
+
+#endif /* APPLICATIONS_CONFIGURE_DEVICE_CONFIGURE_H_ */
+

@@ -1,0 +1,116 @@
+/*
+ * Copyright (c) 2016-2020, Chengdu RST technology co., ltd
+ *
+ * Change Logs:
+ * Date           Author       Notes
+ * 2021-01-06     shijiabao       the first version
+ */
+#include <COMMON_HEADER/common_header.h>
+/**
+ *  GPIO 使用情况表：
+ *              引脚号       设备号            功能
+ *    PE14   78      用于控制485收发，高电平发送，低电平接收
+ *    PC2    34      用于DO输出
+ *    PD0    48      用于4G CAT1模块电源开关控制，高电平时模块电源关闭，低电平模块电源打开
+ *    PD1    49      用于4G CAT1模块开关控制，默认为高电平，此引脚为控制POWERKEY，当为1时，POWERKEY为低电平；当为0时，POWERKEY为高电平
+ *    PA12   12      状态检测引脚
+ * */
+#define RS485_PIN_NUM            78
+#define DO_PIN_NUM               34
+#define A7600C1_POWER_SWITCH_PIN_NUM    48
+#define A7600C1_POWERKEY_PIN_NUM   49
+
+void rs485_pin_on(void)
+{
+    rt_pin_write(RS485_PIN_NUM, PIN_HIGH);
+}
+
+void rs485_pin_down(void)
+{
+    rt_pin_write(RS485_PIN_NUM, PIN_LOW);
+}
+
+void do_pin_on(void)
+{
+    rt_pin_write(DO_PIN_NUM, PIN_HIGH);
+}
+
+void do_pin_down(void)
+{
+    rt_pin_write(DO_PIN_NUM, PIN_LOW);
+}
+
+void a7600c1_modem_power_switch_open(void)
+{
+    rt_pin_write(A7600C1_POWER_SWITCH_PIN_NUM, PIN_LOW);
+    rt_thread_mdelay(3000);
+}
+void a7600c1_modem_power_switch_close(void)
+{
+    rt_pin_write(A7600C1_POWER_SWITCH_PIN_NUM, PIN_HIGH);
+}
+
+void a7600c1_modem_pwrkey_up(void)
+{
+    rt_pin_write(A7600C1_POWERKEY_PIN_NUM, PIN_LOW);
+}
+
+void a7600c1_modem_pwrkey_down(void)
+{
+    rt_pin_write(A7600C1_POWERKEY_PIN_NUM, PIN_HIGH);
+}
+
+void a7600c1_modem_power_on(void)
+{
+    a7600c1_modem_pwrkey_down();
+    rt_thread_mdelay(100);
+    a7600c1_modem_pwrkey_up();
+    rt_thread_mdelay(15000);
+}
+
+void a7600c1_modem_power_off(void)
+{
+    a7600c1_modem_pwrkey_down();
+    rt_thread_mdelay(2500);
+    a7600c1_modem_pwrkey_up();
+    rt_thread_mdelay(15000);
+}
+
+void gpio_init(void)
+{
+    /*引脚为输出模式 */
+    rt_pin_mode(RS485_PIN_NUM,PIN_MODE_OUTPUT);
+    rt_pin_mode(DO_PIN_NUM,PIN_MODE_OUTPUT);
+    rt_pin_mode(A7600C1_POWER_SWITCH_PIN_NUM,PIN_MODE_OUTPUT);
+    rt_pin_mode(A7600C1_POWERKEY_PIN_NUM,PIN_MODE_OUTPUT);
+    /*默认电平 */
+    rt_pin_write(RS485_PIN_NUM, PIN_LOW);
+    rt_pin_write(DO_PIN_NUM, PIN_LOW);
+    //默认关闭电源
+    //a7600c1_modem_power_switch_close();
+    a7600c1_modem_power_switch_open();
+    //默认pwrkey为高电平
+    a7600c1_modem_pwrkey_up();
+}
+
+void modem_power_off(void)
+{
+    if (rt_pin_read(11) == PIN_LOW)
+    {
+        return;
+    }
+
+    //关机
+    a7600c1_modem_pwrkey_down();
+    rt_thread_mdelay(2500);
+    a7600c1_modem_pwrkey_up();
+
+    while(rt_pin_read(11) == PIN_HIGH)
+    {
+        rt_thread_mdelay(3000);
+    }
+
+    LOG_I("mode power off.");
+
+
+}

@@ -1,0 +1,25 @@
+/*
+ * Copyright (c) 2016-2020, Chengdu RST technology co., ltd
+ *
+ * Change Logs:
+ * Date           Author       Notes
+ * 2021-01-06     shijiabao       the first version
+ */
+#ifndef APPLICATIONS_GPIO_BSP_GPIO_H_
+#define APPLICATIONS_BSP_GPIO_H_
+
+void gpio_init(void);
+void rs485_pin_on(void);
+void rs485_pin_down(void);
+void do_pin_on(void);
+void do_pin_down(void);
+
+void a7600c1_modem_power_switch_open(void);
+void a7600c1_modem_power_switch_close(void);
+void a7600c1_modem_pwrkey_up(void);
+void a7600c1_modem_pwrkey_down(void);
+
+void a7600c1_modem_power_on(void);
+void a7600c1_modem_power_off(void);
+
+#endif /* APPLICATIONS_GPIO_BSP_GPIO_H_ */
